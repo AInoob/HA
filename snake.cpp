@@ -16,9 +16,7 @@ void gotoxy(int x, int y)
 
 void gotoxy(COORD p)
 {
-	pos.X = p.X;
-	pos.Y = p.Y;
-	SetConsoleCursorPosition(console, pos);
+	gotoxy(pos.X, pos.Y);
 }
 
 
@@ -63,14 +61,6 @@ public:
 		tail->next = NULL;
 		tail->prev = head;
 	}
-	Node getHead()
-	{
-		return *head;
-	}
-	Node getTail()
-	{
-		return *tail;
-	}
 	boolean isDead()
 	{
 		return dead;
@@ -80,6 +70,19 @@ public:
 	{
 		Node *current = head;
 		while (current != NULL)
+		{
+			if ((x == current->getPos().X) && (y == current->getPos().Y))
+			{
+				return true;
+			}
+			current = current->next;
+		}
+		return false;
+	}
+	boolean paintItSelf(int x, int y)
+	{
+		Node *current = head;
+		while (current->next != NULL)
 		{
 			if ((x == current->getPos().X) && (y == current->getPos().Y))
 			{
@@ -101,20 +104,6 @@ public:
 			return false;
 		}
 	}
-
-	boolean paintItSelf(int x, int y)
-	{
-		Node *current = head;
-		while (current->next != NULL)
-		{
-			if ((x == current->getPos().X) && (y == current->getPos().Y))
-			{
-				return true;
-			}
-			current = current->next;
-		}
-		return false;
-	}
 	void makeFood()
 	{
 		times++;
@@ -124,10 +113,8 @@ public:
 		int x, y;
 		while (true)
 		{
-			x = rand();
-			y = rand();
-			x=x % 40*2;
-			y=y % 23;
+			x = rand() % 40 * 2;
+			y = rand() % 23;
 			if (!checkFood(x, y))
 				break;
 		}
