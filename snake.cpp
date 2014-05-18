@@ -1,17 +1,42 @@
-// ConsoleApplication1.cpp : Defines the entry point for the console application.
-//
 #include "stdafx.h"
 
 using namespace std;
 
-HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 COORD pos;
+
+boolean ask(string question)
+{
+	char response='x';
+	cout << question << "enter y or n to choose" << endl;
+	cin >> response;
+	response = tolower(response);
+	while (!(response=='y'||response=='n'))
+	{
+		cout << "invalid input, enter y or n to choose" << endl;
+		cin >> response;
+		response = tolower(response);
+	}
+	if (response=='y')
+	{
+		return true;
+	}
+	return false;
+}
+
+
+
+void changeSize(int a, int b)
+{
+	SMALL_RECT windowSize = { 0,0,a, b};
+	SetConsoleWindowInfo(hConsole, TRUE, &windowSize);
+}
 
 void gotoxy(int x, int y)
 {
 	pos.X = x;
 	pos.Y = y;
-	SetConsoleCursorPosition(console,pos);
+	SetConsoleCursorPosition(hConsole,pos);
 }
 
 void gotoxy(COORD p)
@@ -40,6 +65,7 @@ public:
 
 class Snake
 {
+	int MAX_W = 79, MAX_H = 24;
 	int times = 0;
 	int point = 0;
 	char direction;
@@ -65,7 +91,11 @@ public:
 	{
 		return dead;
 	}
-
+	void setWH(int a, int b)
+	{
+		MAX_W = a;
+		MAX_H = b;
+	}
 	boolean checkFood(int x, int y)
 	{
 		Node *current = head;
@@ -108,13 +138,11 @@ public:
 	{
 		times++;
 		point = point + times;
-		gotoxy(0, 0);
-		cout << "Score: " << point;
 		int x, y;
 		while (true)
 		{
-			x = rand() % 40 * 2;
-			y = rand() % 23;
+			x = rand() % (MAX_W/2) * 2;
+			y = rand() % MAX_H;
 			if (!checkFood(x, y))
 				break;
 		}
@@ -125,7 +153,7 @@ public:
 	}
 	boolean hitWall(int x, int y)
 	{
-		if (x<0 || y<0 || x>79 || y>24)
+		if (x<0 || y<0 || x>MAX_W || y>MAX_H)
 		{
 			dead = true;
 			return true;
@@ -134,6 +162,8 @@ public:
 	}
 	void move(int x,int y)
 	{
+		gotoxy(0, 0);
+		cout << "Score: " << point;
 		Node *newHead = new Node(x, y);
 		head->prev = newHead;
 		newHead->next = head;
@@ -184,15 +214,31 @@ public:
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	int w, h;
+	srand((int)time(NULL));
+	double speed=100;
+	gotoxy(0, 0);
+	if (ask("Do you want to customize settings?"))
+	{
+		cout << "input width(max 39) and height(max 24)" << endl;
+		cin >> w >> h;
+		w = w * 2 + 1;
+		changeSize(w, h);
+		cout << "j and k can change the speed of snake" << endl;
+		Sleep(1000);
+	}
+	system("cls");
 	while (true)
 	{
-		srand((int)time(NULL));
+		Snake s;
+		s.setWH(w, h);
 		char direction = 'd';
 		char newDirection = 'x';
-		Snake s;
 		s.makeFood();
 		while (!s.isDead())
 		{
+			gotoxy(0, 1);
+			cout << "Speed: " << speed;
 			if (_kbhit())
 				newDirection = _getch();
 			if (newDirection == 224 || newDirection == 0 || newDirection == -32)
@@ -215,6 +261,17 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 			}
 			newDirection = (char)towlower(newDirection);
+			if (newDirection == 'j')
+			{
+				speed = 1.1*speed;
+				newDirection = 'x';
+			}
+			else if (newDirection=='k')
+			{
+				if (speed>=3)
+					speed = speed/1.1;
+				newDirection = 'x';
+			}
 			if (newDirection == 'w' || newDirection == 'a' || newDirection == 's' || newDirection == 'd')
 			{
 				if ((direction == 'w'&&newDirection != 's') || (direction == 's'&&newDirection != 'w') || (direction == 'a'&&newDirection != 'd') || (direction == 'd'&&newDirection != 'a'))
@@ -223,9 +280,9 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 			}
 			s.headTo(direction);
-			Sleep(100);
+			Sleep((int)speed);
 		}
-		gotoxy(14, 6);
+		gotoxy(0, 6);
 		cout << "Game over! Press enter to restart";
 		while (newDirection != 13)
 		{
