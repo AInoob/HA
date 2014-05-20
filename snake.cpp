@@ -7,28 +7,62 @@ COORD pos;
 
 boolean ask(string question)
 {
-	char response='x';
+	char response = 'x';
 	cout << question << "enter y or n to choose" << endl;
 	cin >> response;
 	response = tolower(response);
-	while (!(response=='y'||response=='n'))
+	while (!(response == 'y' || response == 'n'))
 	{
 		cout << "invalid input, enter y or n to choose" << endl;
 		cin >> response;
 		response = tolower(response);
 	}
-	if (response=='y')
+	if (response == 'y')
 	{
 		return true;
 	}
 	return false;
 }
 
+int ask(int min, int max, string question)
+{
+	int r;
+	string input;
+	cout << question << endl;
+	char *temp;
+	cin >> input;
+	temp = const_cast<char*>(input.c_str());
+	r = atoi(temp);
+	while (r < min || r>max)
+	{
+		cout << "invalid input, try again" << endl;
+		cin >> input;
+		temp = const_cast<char*>(input.c_str());
+		r = atoi(temp);
+	}
+	return r;
+}
 
+int** matrix(int x, int y, int value)
+{
+	int **m = new int*[x];
+	for (int i = 0; i < x; i++)
+	{
+		m[i] = new int[y];
+	}
+	for (int i = 0; i < x; i++)
+	{
+		for (int j = 0; j < y; j++)
+		{
+			m[i][j] = value;
+		}
+	}
+	return m;
+}
 
 void changeSize(int a, int b)
 {
-	SMALL_RECT windowSize = { 0,0,a, b};
+	SMALL_RECT windowSize = { 0, 0, a, b };
 	SetConsoleWindowInfo(hConsole, TRUE, &windowSize);
 }
 
@@ -36,7 +70,7 @@ void gotoxy(int x, int y)
 {
 	pos.X = x;
 	pos.Y = y;
-	SetConsoleCursorPosition(hConsole,pos);
+	SetConsoleCursorPosition(hConsole, pos);
 }
 
 void gotoxy(COORD p)
@@ -44,14 +78,20 @@ void gotoxy(COORD p)
 	gotoxy(pos.X, pos.Y);
 }
 
+void show(int x, int y, string show)
+{
+	gotoxy(x * 2, y);
+	cout << show;
+}
+
 class Node
 {
 private:
 	COORD pos;
-public: 
+public:
 	Node* next;
 	Node* prev;
-	Node(int x,int y)
+	Node(int x, int y)
 	{
 		pos.X = x;
 		pos.Y = y;
@@ -64,23 +104,33 @@ public:
 
 class Snake
 {
-	int MAX_W = 79, MAX_H = 24;
+	int **map;
+	int MAX_W = 39, MAX_H = 24;
 	int times = 0;
 	int point = 0;
+	int length = 0;
 	char direction;
-	boolean dead=false;
+	boolean dead = false;
 	Node *head;
 	Node *tail;
 	COORD food;
 public:
+	void loadMap()
+	{
+		Node *current = head;
+		while (current != NULL)
+		{
+			map[current->getPos().X][current->getPos().Y] = 1;
+			length++;
+			current = current->next;
+		}
+	}
 	Snake()
 	{
-		gotoxy(6, 5);
-		cout << "■";
-		gotoxy(6, 4);
-		cout << "■";
-		head = new Node(6, 5);
-		tail = new Node(6, 4);
+		show(3, 5, "■");
+		show(3, 4, "■");
+		head = new Node(3, 5);
+		tail = new Node(3, 4);
 		head->next = tail;
 		head->prev = NULL;
 		tail->next = NULL;
@@ -94,6 +144,12 @@ public:
 	{
 		MAX_W = a;
 		MAX_H = b;
+		map = matrix(a+1, b+1, 0);
+		loadMap();
+	}
+	void end()
+	{
+		delete map;
 	}
 	boolean checkFood(int x, int y)
 	{
@@ -121,7 +177,7 @@ public:
 		}
 		return false;
 	}
-	boolean eatItSelf(int x,int y)
+	boolean eatItSelf(int x, int y)
 	{
 		if (paintItSelf(x, y))
 		{
@@ -133,22 +189,45 @@ public:
 			return false;
 		}
 	}
-	void makeFood()
+	void makeFoodd()
 	{
 		times++;
 		point = point + times;
 		int x, y;
 		while (true)
 		{
-			x = rand() % (MAX_W/2) * 2;
+			x = rand() % MAX_W;
 			y = rand() % MAX_H;
 			if (!checkFood(x, y))
 				break;
 		}
 		food.X = x;
 		food.Y = y;
-		gotoxy(x, y);
-		cout << "★";
+		show(food.X, food.Y, "★");
+	}
+	void makeFood()
+	{
+		times++;
+		point = point + times;
+		int r = rand() % (MAX_W*MAX_H-length);
+		for (int i = 0; i < MAX_W; i++)
+		{
+			for (int j = 0; j < MAX_H; j++)
+			{
+				if (map[i][j] == 0)
+				{
+					r--;
+					if (r == -1)
+					{
+						food.X = i;
+						food.Y = j;
+						show(food.X, food.Y, "★");
+						return;
+					}
+				}
+			}
+		}
+		return;
 	}
 	boolean hitWall(int x, int y)
 	{
@@ -159,7 +238,7 @@ public:
 		}
 		return false;
 	}
-	void move(int x,int y)
+	void move(int x, int y)
 	{
 		gotoxy(0, 0);
 		cout << "Score: " << point;
@@ -167,18 +246,19 @@ public:
 		head->prev = newHead;
 		newHead->next = head;
 		head = newHead;
-		gotoxy(head->getPos().X, head->getPos().Y);
-		cout << "■";
-		if ((food.X == x)&&(food.Y == y))
+		map[head->getPos().X][head->getPos().Y] = 1;
+		show(head->getPos().X, head->getPos().Y, "■");
+		if ((food.X == x) && (food.Y == y))
 		{
 			makeFood();
+			length++;
 		}
 		else
 		{
-			gotoxy(tail->getPos().X, tail->getPos().Y);
 			if (!paintItSelf(tail->getPos().X, tail->getPos().Y))
 			{
-				cout << "  ";
+				map[tail->getPos().X][tail->getPos().Y] = 0;
+				show(tail->getPos().X, tail->getPos().Y, "  ");
 			}
 			tail = tail->prev;
 			tail->next = NULL;
@@ -198,15 +278,15 @@ public:
 			headPos.Y = headPos.Y + 1;
 			break;
 		case 'a':
-			headPos.X = headPos.X - 2;
+			headPos.X = headPos.X - 1;
 			break;
 		case 'd':
-			headPos.X = headPos.X + 2;
+			headPos.X = headPos.X + 1;
 			break;
 		}
 		if ((!eatItSelf(headPos.X, headPos.Y)) && (!hitWall(headPos.X, headPos.Y)))
 		{
-			move(headPos.X,headPos.Y);
+			move(headPos.X, headPos.Y);
 		}
 	}
 };
@@ -214,29 +294,29 @@ public:
 int _tmain(int argc, _TCHAR* argv[])
 {
 	SetConsoleTitle(L"SNAKE");
-	int w, h,temp=0;
+	int w, h, temp = 0;
 	srand((int)time(NULL));
-	double speed=100;
+	double speed = 100;
 	gotoxy(0, 0);
 	if (ask("Do you want to customize settings?"))
 	{
-		cout << "input width(max 39) and height(max 24)" << endl;
-		cin >> w >> h;
-		w = w * 2 + 1;
-		changeSize(w, h);
+		cout << "input width(max 39, min 10) and height(max 24, min 10)" << endl;
+		w=ask(10, 39, "input the width");
+		h=ask(10, 24, "input the height");
+		changeSize(w*2+1, h);
 	}
 	else
 	{
-		w = 79;
+		w = 39;
 		h = 24;
 	}
-	cout << "j and k can change the speed of snake" << endl<<"enter space to pause, then press any move key to resume"<<endl;
-	cout << "enter q to exit"<<endl;
+	cout << "j and k can change the speed of snake" << endl << "enter space to pause, then press any move key to resume" << endl;
+	cout << "enter q to exit" << endl;
 	while (temp < 3)
 	{
 		Sleep(1000);
 		temp++;
-		cout <<4-temp<<endl;
+		cout << 4 - temp << endl;
 	}
 	system("cls");
 	while (true)
@@ -304,6 +384,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			Sleep((int)speed);
 		}
 		gotoxy(0, 6);
+		s.end();
 		cout << "Game over! Press enter to restart";
 		while (newDirection != 13)
 		{
