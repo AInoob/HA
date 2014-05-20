@@ -3,7 +3,6 @@
 using namespace std;
 
 HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-COORD pos;
 
 boolean ask(string question)
 {
@@ -68,6 +67,7 @@ void changeSize(int a, int b)
 
 void gotoxy(int x, int y)
 {
+	COORD pos;
 	pos.X = x;
 	pos.Y = y;
 	SetConsoleCursorPosition(hConsole, pos);
@@ -75,7 +75,7 @@ void gotoxy(int x, int y)
 
 void gotoxy(COORD p)
 {
-	gotoxy(pos.X, pos.Y);
+	gotoxy(p.X, p.Y);
 }
 
 void show(int x, int y, string show)
@@ -151,19 +151,6 @@ public:
 	{
 		delete map;
 	}
-	boolean checkFood(int x, int y)
-	{
-		Node *current = head;
-		while (current != NULL)
-		{
-			if ((x == current->getPos().X) && (y == current->getPos().Y))
-			{
-				return true;
-			}
-			current = current->next;
-		}
-		return false;
-	}
 	boolean paintItSelf(int x, int y)
 	{
 		Node *current = head;
@@ -188,22 +175,6 @@ public:
 		{
 			return false;
 		}
-	}
-	void makeFoodd()
-	{
-		times++;
-		point = point + times;
-		int x, y;
-		while (true)
-		{
-			x = rand() % MAX_W;
-			y = rand() % MAX_H;
-			if (!checkFood(x, y))
-				break;
-		}
-		food.X = x;
-		food.Y = y;
-		show(food.X, food.Y, "★");
 	}
 	void makeFood()
 	{
