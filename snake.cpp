@@ -112,6 +112,10 @@ public:
 		map[head.X][head.Y] = tail;
 		length = 2;
 	}
+	int getScore()
+	{
+		return point;
+	}
 	void end()
 	{
 		delete map;
@@ -129,7 +133,7 @@ public:
 	}
 	boolean eatItSelf(int x, int y)
 	{
-		if (paintItSelf(x, y))
+		if (paintItSelf(x, y)&&(!(tail.X==x&&tail.Y==y)))
 		{
 			dead = true;
 			return true;
@@ -192,8 +196,6 @@ public:
 	}
 	void move(int x, int y)
 	{
-		show(0, 0, "Score: ");
-		cout <<point;
 		COORD newHead = {x,y};
 		map[newHead.X][newHead.Y] = head;
 		head = newHead;
@@ -209,8 +211,8 @@ public:
 			if (!paintItSelf(tail.X, tail.Y))
 			{
 				show(tail.X, tail.Y, "  ");
-				map[temp.X][temp.Y] = { -1, -1 };
 			}
+			map[temp.X][temp.Y] = { -1, -1 };
 			tail = temp;
 		}
 	}
@@ -243,6 +245,7 @@ public:
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	std::basic_string<TCHAR> tempT;
 	SetConsoleTitle(L"SNAKE");
 	int w, h, temp = 0;
 	srand((int)time(NULL));
@@ -250,9 +253,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	gotoxy(0, 0);
 	if (ask("Do you want to customize settings?"))
 	{
-		cout << "input width(max 39, min 10) and height(max 24, min 10)" << endl;
+		COORD size=GetLargestConsoleWindowSize(hConsole);
+		cout << "input width(max 39 , min 10) and height(max " << size.Y-1 << ", min 10)" << endl;
 		w=ask(10, 39, "input the width");
-		h=ask(10, 24, "input the height");
+		h=ask(10, size.Y-1, "input the height");
 		changeSize(w*2+1, h);
 	}
 	else
@@ -278,8 +282,24 @@ int _tmain(int argc, _TCHAR* argv[])
 		s.makeFood();
 		while (!s.isDead())
 		{
-			gotoxy(0, 1);
-			cout << "Speed: " << speed;
+			if (w > 20)
+			{
+				wstring ws;
+				string s1 = std::to_string(s.getScore());
+				string s2 = std::to_string(speed);
+				tempT = L"SNAKE    ";
+				tempT.append(L" Score: ");
+				ws.clear();
+				ws.assign(s1.begin(), s1.end());
+				tempT.append(ws);
+				tempT.append(L"    Speed: ");
+				ws.clear();
+				ws.assign(s2.begin(), s2.end());
+				tempT.append(ws);
+				LPCWSTR title = (LPCWSTR)tempT.c_str();
+				SetConsoleTitle(title);
+			}
+			Sleep((int)speed);
 			if (_kbhit())
 				newDirection = _getch();
 			while (newDirection == ' ')
@@ -331,11 +351,10 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 			}
 			s.headTo(direction);
-			Sleep((int)speed);
 		}
 		gotoxy(0, 6);
 		s.end();
-		cout << "Game over! Press enter to restart";
+		cout << "Game over! Score: "<<s.getScore();
 		while (newDirection != 13)
 		{
 			if (_kbhit())
